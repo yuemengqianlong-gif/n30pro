@@ -1,0 +1,15 @@
+{
+  "admin/network/n30pro-devices": {
+    "title": "设备管理",
+    "order": 75,
+    "action": {
+      "type": "view",
+      "path": "n30pro-devices/overview"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-deviceid"
+      ]
+    }
+  }
+}
