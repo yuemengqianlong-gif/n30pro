@@ -22,3 +22,13 @@
 ## 版本策略
 
 保留与 N30 Pro 闭源无线匹配的内核和构建基础；PassWall2 及其核心取兼容的版本，不强制混装其它内核分支。所有上游 Commit 必须在构建日志中记录。
+
+## 第四次成功构建与后续功能增量
+
+2026-10-22 的 GitHub Actions #4（commit `7616044`）已成功生成 N30 Pro 的 `initramfs-kernel.bin`、`squashfs-factory.bin` 与 `squashfs-sysupgrade.bin`。该基线已实际从产物 Manifest 核验 `kmod-mt_wifi`、`luci-app-passwall2`、`xray-core`、`luci-app-eqos-mtk`、`luci-app-nlbwmon` 存在，未发现 `luci-app-store` 或 `luci-app-openclash`。这些结果仅代表静态构建检查，不代表刷机测试通过。
+
+下一次构建试验性加入 [`luci-app-deviceid`](https://github.com/wyndam/luci-app-deviceid)：利用 DHCP/ARP/无线客户端线索、MAC OUI 尝试显示设备厂商和设备类型。随机 MAC、网卡 ODM 与整机品牌不一致时可能无法准确识别。该插件支持可选联网查询 MAC 厂商，考虑隐私请在使用时审查并按需关闭在线查询。
+
+**限速现状：** 固件已经包含 MTK EQoS LuCI 界面，尚未验证 AP/桥接模式下对设备流量的整形效果。硬件 HNAT/WED 等卸载可能绕开软件路径。未验证前不要声称可以对所有有线和 Wi-Fi 设备限速。
+
+**版本和使用安全：** 当前 OpenWrt/ImmortalWrt 内核和无线驱动版本与源码快照绑定；不要将未经验证的新内核或无线补丁直接混装。新构建仅上传 Actions Artifacts，不自动发布为正式可刷镜像；历史成功文件可在对应运行页下载。
