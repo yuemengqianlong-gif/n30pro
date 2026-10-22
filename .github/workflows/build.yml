@@ -48,9 +48,31 @@ jobs:
           if ! grep -q 'mediatek,mtd-eeprom = <&factory 0x0>;' "$dts"; then
             sed -i '/&wifi {/a\    mediatek,mtd-eeprom = <&factory 0x0>;' "$dts"
           fi
-          sed -i '/define Device\/netcore_n30-pro/,/endef/ s/kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware //' "$mk"
-          grep -q 'mediatek,mtd-eeprom = <&factory 0x0>;' "$dts"
-          ! sed -n '/define Device\/netcore_n30-pro/,/endef/p' "$mk" | grep -q 'kmod-mt7915e'
+          # Remove all three open-source Wi-Fi packages independently.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("target/linux/mediatek/image/filogic.mk")
+          data=p.read_text()
+          start=data.find("define Device/netcore_n30-pro")
+          end=data.find("endef",start)
+          if start < 0 or end < 0:
+              raise SystemExit("N30 Pro image definition not found")
+          block=data[start:end]
+          for name in ("kmod-mt7915e", "kmod-mt7981-firmware", "mt7981-wo-firmware"):
+              block=block.replace(name, "")
+          p.write_text(data[:start]+block+data[end:])
+          print("N30 Pro DEVICE_PACKAGES:",block)
+          PY
+          echo "Device tree Wi-Fi excerpt:"
+          grep -A8 -F '&wifi {' "$dts" || true
+          if ! grep -Fq 'mediatek,mtd-eeprom = <&factory 0x0>;' "$dts"; then
+            echo "::error::Missing proprietary mt_wifi EEPROM declaration"
+            exit 1
+          fi
+          if sed -n '/define Device\/netcore_n30-pro/,/endef/p' "$mk" | grep -Eq 'kmod-mt7915e|kmod-mt7981-firmware|mt7981-wo-firmware'; then
+            echo "::error::Open-source Wi-Fi dependencies remain in N30 Pro image profile"
+            exit 1
+          fi
       - name: Feeds and PassWall2 sources
         working-directory: openwrt
         run: |
