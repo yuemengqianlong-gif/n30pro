@@ -12,6 +12,8 @@ env:
   SOURCE_COMMIT: ec9ef10efc65da1e6d1de4e2c043c0e13d08eed8
   PATCH_REPO: https://github.com/liuyi-htu/Netcore-N30-Pro-patch-for-OpenWrt.git
   PATCH_COMMIT: f8be85f26ce88f435389a112d9196a8159503ff2
+  CCACHE_DIR: ${{ github.workspace }}/openwrt/.ccache
+  CCACHE_MAXSIZE: 1G
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -110,6 +112,27 @@ jobs:
           done
           cp .config ../resolved.config
           ./scripts/diffconfig.sh > ../diffconfig.txt
+      - name: Restore source archive cache
+        uses: actions/cache@v4
+        with:
+          path: openwrt/dl
+          key: n30pro-dl-${{ runner.os }}-${{ env.SOURCE_COMMIT }}-${{ hashFiles('configs/n30pro.config') }}-${{ github.run_id }}
+          restore-keys: |
+            n30pro-dl-${{ runner.os }}-${{ env.SOURCE_COMMIT }}-
+      - name: Restore compiler object cache
+        uses: actions/cache@v4
+        with:
+          path: openwrt/.ccache
+          key: n30pro-ccache-${{ runner.os }}-${{ env.SOURCE_COMMIT }}-${{ hashFiles('configs/n30pro.config') }}-${{ github.run_id }}
+          restore-keys: |
+            n30pro-ccache-${{ runner.os }}-${{ env.SOURCE_COMMIT }}-
+      - name: Show compiler cache configuration
+        working-directory: openwrt
+        run: |
+          grep -qx 'CONFIG_CCACHE=y' .config || { echo "::error::OpenWrt CCACHE was not enabled"; exit 1; }
+          mkdir -p "$CCACHE_DIR"
+          ccache -M "$CCACHE_MAXSIZE"
+          ccache -s || true
       - name: Download packages
         working-directory: openwrt
         run: |
@@ -120,6 +143,7 @@ jobs:
         run: |
           make -j4 2>&1 | tee ../build.log
           test ${PIPESTATUS[0]} -eq 0
+          ccache -s || true
       - name: Collect images and manifest
         run: |
           mkdir -p output
