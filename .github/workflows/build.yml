@@ -1,6 +1,13 @@
 name: Build N30 Pro (validation first)
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'configs/**'
+      - 'packages/**'
+      - 'files/**'
 permissions:
   contents: read
 concurrency:
