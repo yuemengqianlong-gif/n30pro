@@ -93,6 +93,10 @@ jobs:
           rm -f package/feeds/luci/luci-theme-argon
           test -f package/custom/luci-theme-argon/Makefile
           grep -q 'PKG_VERSION:=3.0.0' package/custom/luci-theme-argon/Makefile
+      - name: Include clean-install Argon default
+        run: |
+          mkdir -p openwrt/files/etc/uci-defaults
+          install -m 0755 files/etc/uci-defaults/99-n30pro-argon openwrt/files/etc/uci-defaults/99-n30pro-argon
       - name: Resolve and validate configuration
         working-directory: openwrt
         run: |
