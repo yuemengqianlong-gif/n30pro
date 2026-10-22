@@ -87,11 +87,15 @@ jobs:
         working-directory: openwrt
         run: |
           cp defconfig/mt7981-ax3000.config .config
-          sed -i '/^CONFIG_TARGET_DEVICE_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_MULTI_PROFILE=/d' .config
+          sed -i '/^CONFIG_TARGET_DEVICE_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_MULTI_PROFILE=/d; /^CONFIG_TARGET_mediatek_mt7981=/d' .config
           # Explicitly drop legacy bundled applications; do not delete package-manager infrastructure.
           sed -i -E '/^CONFIG_PACKAGE_(luci-app-store|luci-app-openclash|luci-app-passwall|luci-app-samba4|tailscale)=/d' .config
           cat ../configs/n30pro.config >> .config
           make defconfig
+          echo "Resolved targets:"
+          grep -E '^CONFIG_TARGET_(mediatek|DEVICE_mediatek|MULTI_PROFILE)' .config | head -65 || true
+          echo "N30 Pro device definition:"
+          sed -n '/define Device\/netcore_n30-pro/,/endef/p' target/linux/mediatek/image/filogic.mk
           for item in CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_netcore_n30-pro CONFIG_PACKAGE_kmod-mt_wifi CONFIG_PACKAGE_luci-app-passwall2 CONFIG_PACKAGE_xray-core CONFIG_PACKAGE_luci-app-nlbwmon; do
             grep -qx "${item}=y" .config || { echo "Missing package/target: $item"; exit 1; }
           done
