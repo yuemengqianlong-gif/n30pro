@@ -87,11 +87,15 @@ jobs:
         working-directory: openwrt
         run: |
           cp defconfig/mt7981-ax3000.config .config
-          sed -i '/^CONFIG_TARGET_DEVICE_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_MULTI_PROFILE=/d; /^CONFIG_TARGET_mediatek_mt7981=/d' .config
+          sed -i '/^CONFIG_TARGET_DEVICE_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_.*_DEVICE_/d; /^CONFIG_TARGET_mediatek_mt7981=/d' .config
           # Explicitly drop legacy bundled applications; do not delete package-manager infrastructure.
           sed -i -E '/^CONFIG_PACKAGE_(luci-app-store|luci-app-openclash|luci-app-passwall|luci-app-samba4|tailscale)=/d' .config
+          # Keep MULTI_PROFILE selected: upstream defaults use this for per-device image profiles.
+          printf '\nCONFIG_TARGET_MULTI_PROFILE=y\n' >> .config
           cat ../configs/n30pro.config >> .config
           make defconfig
+          echo "Generated target profiles containing N30 Pro:"
+          grep -Ril 'netcore_n30-pro' tmp/.targetinfo* 2>/dev/null || true
           echo "Resolved targets:"
           grep -E '^CONFIG_TARGET_(mediatek|DEVICE_mediatek|MULTI_PROFILE)' .config | head -65 || true
           echo "N30 Pro device definition:"
