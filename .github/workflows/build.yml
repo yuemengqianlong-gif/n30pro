@@ -118,6 +118,8 @@ jobs:
           # Keep MULTI_PROFILE selected: upstream defaults use this for per-device image profiles.
           printf '\nCONFIG_TARGET_MULTI_PROFILE=y\n' >> .config
           cat ../configs/n30pro.config >> .config
+          # Argon 3 ships integrated settings; do not package the old standalone config app.
+          printf '\n# CONFIG_PACKAGE_luci-app-argon-config is not set\n' >> .config
           make defconfig
           echo "Generated target profiles containing N30 Pro:"
           grep -Ril 'netcore_n30-pro' tmp/.targetinfo* 2>/dev/null || true
@@ -162,9 +164,16 @@ jobs:
       - name: Compile firmware
         working-directory: openwrt
         run: |
+          set +e
           make -j4 2>&1 | tee ../build.log
-          test ${PIPESTATUS[0]} -eq 0
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            echo "::warning::Parallel build failed; running verbose single-thread diagnostic pass"
+            make -j1 V=s 2>&1 | tee ../build-diagnostic.log
+            result=${PIPESTATUS[0]}
+          fi
           ccache -s || true
+          exit "$result"
       - name: Collect images and manifest
         run: |
           mkdir -p output
@@ -202,5 +211,6 @@ jobs:
             resolved.config
             diffconfig.txt
             build.log
+            build-diagnostic.log
           if-no-files-found: warn
           retention-days: 14
