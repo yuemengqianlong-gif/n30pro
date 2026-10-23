@@ -98,6 +98,12 @@ jobs:
           git -C package/custom/luci-theme-argon rev-parse HEAD
           # Remove the old feed theme variant; keep only the 3.0.0 source.
           rm -f package/feeds/luci/luci-theme-argon
+          # Remove old feed package ownership to avoid selecting obsolete Argon Config.
+          rm -f package/feeds/luci/luci-app-argon-config
+          rm -f package/feeds/luci/luci-i18n-argon-config-zh-cn
+          # Version 3 has integrated settings; its translation package, if produced,
+          # must depend on the v3 theme instead of legacy luci-app-argon-config.
+          test ! -e package/feeds/luci/luci-app-argon-config
           test -f package/custom/luci-theme-argon/Makefile
           grep -q 'PKG_VERSION:=3.0.0' package/custom/luci-theme-argon/Makefile
       - name: Include N30 Pro device management package
@@ -121,10 +127,14 @@ jobs:
           # Argon 3 ships integrated settings; do not package the old standalone config app.
           printf '\n# CONFIG_PACKAGE_luci-app-argon-config is not set\n# CONFIG_PACKAGE_luci-i18n-argon-config-zh-cn is not set\n' >> .config
           make defconfig
-          if grep -Eq '^CONFIG_PACKAGE_(luci-app-argon-config|luci-i18n-argon-config-zh-cn)=y$' .config; then
-            echo "::error::Legacy Argon components are incompatible with this theme configuration"
+          # Argon 3.0 may generate a zh-cn translation package itself.
+          # Old standalone config app must not be installed, and translation
+          # dependencies must resolve against the new theme.
+          if grep -qx 'CONFIG_PACKAGE_luci-app-argon-config=y' .config; then
+            echo "::error::Old Argon standalone config is still selected"
             exit 1
           fi
+          grep -E '^CONFIG_PACKAGE_luci-(theme-argon|app-argon-config|i18n-argon-config-zh-cn)' .config || true
           echo "Generated target profiles containing N30 Pro:"
           grep -Ril 'netcore_n30-pro' tmp/.targetinfo* 2>/dev/null || true
           echo "Resolved targets:"
