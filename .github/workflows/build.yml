@@ -121,7 +121,11 @@ jobs:
           # Argon 3 ships integrated settings; do not package the old standalone config app.
           printf '\n# CONFIG_PACKAGE_luci-app-argon-config is not set\n# CONFIG_PACKAGE_luci-i18n-argon-config-zh-cn is not set\n' >> .config
           make defconfig
-          if grep -Eq '^CONFIG_PACKAGE_(luci-app-argon-config|luci-i18n-argon-config-zh-cn)=y "Generated target profiles containing N30 Pro:"
+          if grep -Eq '^CONFIG_PACKAGE_(luci-app-argon-config|luci-i18n-argon-config-zh-cn)=y$' .config; then
+            echo "::error::Legacy Argon components are incompatible with this theme configuration"
+            exit 1
+          fi
+          echo "Generated target profiles containing N30 Pro:"
           grep -Ril 'netcore_n30-pro' tmp/.targetinfo* 2>/dev/null || true
           echo "Resolved targets:"
           grep -E '^CONFIG_TARGET_(mediatek|DEVICE_mediatek|MULTI_PROFILE)' .config | head -65 || true
