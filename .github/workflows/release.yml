@@ -1,0 +1,51 @@
+name: Publish N30 Pro Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download validated firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: n30pro-build-results
+          path: artifact
+          repository: ${{ github.repository }}
+          run-id: 39881104703
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -lah artifact
+          test -n "$(find artifact -maxdepth 1 -type f -name '*n30-pro*sysupgrade.bin' -print -quit)"
+          test -f artifact/SHA256SUMS.txt
+          mkdir -p release-assets
+          find artifact -maxdepth 1 -type f \( -name '*n30-pro*' -o -name 'SHA256SUMS.txt' -o -name '*.manifest' -o -name 'profiles.json' \) -exec cp -v {} release-assets/ \;
+          cat > release-assets/RELEASE-NOTES.txt <<'EOF'
+          Netcore N30 Pro custom ImmortalWrt firmware
+
+          Build validation: GitHub Actions run 39881104703
+          Source commit: 43a5b022e604fe8f21e0fdd742e9a40dbe83c682
+
+          Important:
+          - The firmware passed build-time validation but has not been verified by flashing and booting on physical hardware.
+          - Back up device configuration before upgrading.
+          - Verify the exact device model and image type before flashing.
+          - Verify image checksums using SHA256SUMS.txt.
+          EOF
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release-assets/* \
+            --title "N30 Pro ImmortalWrt ${GITHUB_REF_NAME}" \
+            --notes-file release-assets/RELEASE-NOTES.txt
